@@ -1,9 +1,22 @@
 const fs = require('fs');
 const path = require('path');
 
+const { validationResult } = require('express-validator');
+const { errResponse } = require('../middleware/HandleError/HandleError');
+const messageValidation = 'Error en los parametros de entrada.';
+
 const bestOptionsPerYear = async(req, res) => {
+    let err = await errResponse(validationResult(req), res, 'error');
+    if (err !== null) {
+        return res.status(422).send({
+            status: 422,
+            message: messageValidation,
+            data: err.dataErr //
+        });
+    }
+
     try {
-        let year = 2006;
+        let { year } = req.body;
         let data = getFileJson();
         let result = await data.filter(checkAñioSeguro(year));
 
