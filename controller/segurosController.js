@@ -59,6 +59,7 @@ const quoteCar = async(req, res) => {
     }
 
     try {
+        let messageReponse = "quoteCar";
         let { brand, year, hasAC } = req.body;
 
         let data = getFileJson();
@@ -82,7 +83,13 @@ const quoteCar = async(req, res) => {
             Low: dataLowSort[0]
         }
 
-        return res.status(200).send({ status: 200, message: 'quoteCar', data: { response } });
+        if (response.RC === undefined && response.High === undefined) {
+            messageReponse = "Sin seguros disponibles";
+            return res.status(404).send({ status: 404, message: messageReponse, data: { response } });
+        } else {
+            return res.status(200).send({ status: 200, message: messageReponse, data: { response } });
+        }
+
     } catch (error) {
         console.log(error);
         return res.status(500).send({
