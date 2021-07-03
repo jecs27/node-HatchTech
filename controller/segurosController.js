@@ -17,6 +17,7 @@ const bestOptionsPerYear = async(req, res) => {
     }
 
     try {
+        let messageReponse = "bestOptionsPerYear";
         let { year } = req.body;
 
         let data = getFileJson();
@@ -36,7 +37,13 @@ const bestOptionsPerYear = async(req, res) => {
             Low: dataLowSort[0]
         }
 
-        return res.status(200).send({ status: 200, message: 'bestOptionsPerYear ', data: { response } });
+        if (response.RC === undefined && response.High === undefined &&
+            response.Mid === undefined && response.Low === undefined) {
+            messageReponse = "Sin seguros disponibles";
+            return res.status(404).send({ status: 404, message: messageReponse, data: { response } });
+        } else {
+            return res.status(200).send({ status: 200, message: messageReponse, data: { response } });
+        }
     } catch (error) {
         console.log(error);
         return res.status(500).send({
@@ -83,7 +90,8 @@ const quoteCar = async(req, res) => {
             Low: dataLowSort[0]
         }
 
-        if (response.RC === undefined && response.High === undefined) {
+        if (response.RC === undefined && response.High === undefined &&
+            response.Mid === undefined && response.Low === undefined) {
             messageReponse = "Sin seguros disponibles";
             return res.status(404).send({ status: 404, message: messageReponse, data: { response } });
         } else {
