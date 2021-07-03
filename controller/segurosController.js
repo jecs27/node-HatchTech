@@ -48,28 +48,41 @@ const bestOptionsPerYear = async(req, res) => {
 }
 
 const quoteCar = async(req, res) => {
-    try {
+    //validacion para archivo Validator, para que se cumpla lo necesario en el body
+    let err = await errResponse(validationResult(req), res, 'error');
+    if (err !== null) {
+        return res.status(422).send({
+            status: 422,
+            message: messageValidation,
+            data: err.dataErr //
+        });
+    }
 
-        let brand = 'Mazda';
-        let year = 2010;
-        let hasAC = true;
+    try {
+        let { brand, year, hasAC } = req.body;
 
         let data = getFileJson();
         //se obtiene el filtrado en base al año
         let result = await data.filter(checkAñioSeguro(year));
 
+        let dataRC = filterSortData(result, 'RC');
+        let dataHigh = filterSortData(result, 'High');
+        let dataMid = filterSortData(result, 'Mid');
+        let dataLow = filterSortData(result, 'Low');
 
-        let dataBrand = result.map((item) => {
-            if (item.brand.toLowerCase() === brand.toLowerCase()) {
-                return item;
-            }
-        });
+        let dataRCSort = filterBrandWithAC(dataRC, brand, hasAC);
+        let dataHighSort = filterBrandWithAC(dataHigh, brand, hasAC);
+        let dataMidSort = filterBrandWithAC(dataMid, brand, hasAC);
+        let dataLowSort = filterBrandWithAC(dataLow, brand, hasAC);
+        //Al tener acomodados los datos se asigna el valor 0 para elegir el de menor precio
+        let response = {
+            RC: dataRCSort[0],
+            High: dataHighSort[0],
+            Mid: dataMidSort[0],
+            Low: dataLowSort[0]
+        }
 
-        let dataBrandSort = dataBrand.sort((a, b) => {
-            return parseFloat(a.price) - parseFloat(b.price)
-        });
-
-        return res.status(200).send({ status: 200, message: 'quoteCar', data: { dataBrandSort } });
+        return res.status(200).send({ status: 200, message: 'quoteCar', data: { response } });
     } catch (error) {
         console.log(error);
         return res.status(500).send({
@@ -80,21 +93,50 @@ const quoteCar = async(req, res) => {
     }
 }
 
-//función para filtrado y sort de los datos por tipo "RC"-"Mid"...
-const filterSortData = (array, tipo) => {
-    //se realiza map para solo optener los coverageType indicados
-    let data = array.map((item) => {
-        if (item.coverageType === tipo) {
-            return item;
+const filterBrandWithAC = (array, brand, hasAC) => {
+    let dataSort = [];
+
+    let dataBrand = array.map((item) => {
+        if (item != undefined) {
+            if (item.brand.toLowerCase() === brand.toLowerCase()) {
+                return item;
+            }
         }
     });
 
-    //posteriormente se hace un sort para acomodarlos de menor a mayor en base al campo price
-    let dataSort = data.sort((a, b) => {
-        return parseFloat(a.price) - parseFloat(b.price)
-    });
-
+    if (hasAC) {
+        dataSort = dataBrand.sort((a, b) => {
+            return (parseFloat(a.price) + parseFloat(a.price)) - (parseFloat(b.price) + parseFloat(b.price))
+        });
+    } else {
+        dataSort = dataBrand.sort((a, b) => {
+            return parseFloat(a.price) - parseFloat(b.price)
+        });
+    }
     return dataSort;
+}
+
+//función para filtrado y sort de los datos por tipo "RC"-"Mid"...
+const filterSortData = (array, tipo) => {
+    try {
+        //se realiza map para solo optener los coverageType indicados
+        let data = array.map((item) => {
+            if (item.coverageType === tipo) {
+                return item;
+            }
+        });
+
+        //posteriormente se hace un sort para acomodarlos de menor a mayor en base al campo price
+        let dataSort = data.sort((a, b) => {
+            return parseFloat(a.price) - parseFloat(b.price)
+        });
+
+        return dataSort;
+    } catch (error) {
+        console.log(error);
+
+    }
+
 }
 
 //validación de filtrado por el año recibido
